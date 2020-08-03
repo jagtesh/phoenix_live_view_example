@@ -6,10 +6,13 @@ WORKDIR /builder
 
 COPY . /builder
 
+RUN npm install --prefix ./assets && \
+  npm run deploy --prefix ./assets
+
+RUN mix local.hex
+
 RUN mix deps.get && \
   mix compile && \
-  npm install --prefix ./assets && \
-  npm run deploy --prefix ./assets && \
   mix phx.digest && \
   mix release
 
