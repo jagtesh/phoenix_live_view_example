@@ -2,7 +2,9 @@ FROM elixir:latest AS builder
 
 ENV MIX_ENV=dev
 
-WORKDIR /builder/
+WORKDIR /builder
+
+COPY . /builder
 
 RUN mix deps.get && \
   mix compile && \
@@ -14,7 +16,7 @@ RUN mix deps.get && \
 
 FROM postgres:13 AS runtime
 
-WORKDIR /app/
+WORKDIR /app
 
 RUN createdb demo_dev
 
