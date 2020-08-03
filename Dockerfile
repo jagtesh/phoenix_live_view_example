@@ -1,39 +1,32 @@
-# Stage 1
-# Build frontend assets
-FROM node:latest AS stage1
+FROM elixir:latest AS stage1
 
 WORKDIR /stage1
-
-COPY . /stage1
-RUN npm install --prefix ./assets && \
-  npm run deploy --prefix ./assets
-
-
-# Stage 2
-# Create elixir release package
-FROM elixir:latest AS stage2
-
-WORKDIR /stage2
 ENV MIX_ENV=dev
 
-COPY --from=stage1 . /stage2
-RUN mix local.hex --force
+RUN apt-get update && \
+  # apt-get install -y postgresql-client && \
+  apt-get install -y inotify-tools && \
+  apt-get install -y nodejs && \
+  curl -L https://npmjs.org/install.sh | sh && \
+  mix local.hex --force && \
+  # mix archive.install hex phx_new 1.5.3 --force && \
+  mix local.rebar --force
+
+COPY . /stage1
 RUN mix deps.get && \
+  npm install --prefix /stage1/assets
+
+RUN npm run deploy --prefix /stage1/assets && \
   mix compile && \
   mix phx.digest && \
   mix release
 
-
-# Stage 3 (optional - for testing only)
-# Install postgres and copy release to /app
-FROM postgres:13 AS stage3
+FROM postgres:13 AS stage2
 
 WORKDIR /app
 ENV DATABASE_URL=postgres://postgres@localhost:demo_dev
 
-COPY --from=stage2 /stage2/_build/dev /app
-RUN createdb demo_dev
-
+COPY --from=stage1 /stage1/_build/dev /app
 # Release created at _build/dev/rel/prod!
 #     # To start your system
 #     _build/dev/rel/prod/bin/prod start
