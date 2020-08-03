@@ -17,7 +17,7 @@ WORKDIR /stage2
 ENV MIX_ENV=dev
 
 COPY --from=stage1 . /stage2
-RUN mix local.hex -y
+RUN mix local.hex --force
 RUN mix deps.get && \
   mix compile && \
   mix phx.digest && \
