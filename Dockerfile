@@ -24,7 +24,7 @@ FROM postgres:13 AS runtime
 
 WORKDIR /app
 
-COPY --from=node . /app
+COPY --from=node /builder /app
 RUN createdb demo_dev
 ENV DATABASE_URL=postgres://postgres@localhost:demo_dev
 
