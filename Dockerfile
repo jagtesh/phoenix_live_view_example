@@ -1,34 +1,38 @@
-FROM node:latest AS node
+# Stage 1
+# Build frontend assets
+FROM node:latest AS stage1
 
-WORKDIR /builder
+WORKDIR /stage1
 
-COPY . /builder
+COPY . /stage1
 RUN npm install --prefix ./assets && \
   npm run deploy --prefix ./assets
 
 
-FROM elixir:latest AS builder
+# Stage 2
+# Create elixir release package
+FROM elixir:latest AS stage2
 
-WORKDIR /builder
+WORKDIR /stage2
 ENV MIX_ENV=dev
 
-COPY --from=node . /builder
-RUN mix local.hex
+COPY --from=stage1 . /stage2
+RUN mix local.hex -y
 RUN mix deps.get && \
   mix compile && \
   mix phx.digest && \
   mix release
 
 
-FROM postgres:13 AS runtime
+# Stage 3 (optional - for testing only)
+# Install postgres and copy release to /app
+FROM postgres:13 AS stage3
 
 WORKDIR /app
-
-COPY --from=node /builder /app
-RUN createdb demo_dev
 ENV DATABASE_URL=postgres://postgres@localhost:demo_dev
 
-COPY --from=builder /builder/_build/dev /app
+COPY --from=stage2 /stage2/_build/dev /app
+RUN createdb demo_dev
 
 # Release created at _build/dev/rel/prod!
 #     # To start your system
