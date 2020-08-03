@@ -1,16 +1,19 @@
-FROM elixir:latest AS builder
-
-ENV MIX_ENV=dev
+FROM node:latest AS node
 
 WORKDIR /builder
 
 COPY . /builder
-
 RUN npm install --prefix ./assets && \
   npm run deploy --prefix ./assets
 
-RUN mix local.hex
 
+FROM elixir:latest AS builder
+
+WORKDIR /builder
+ENV MIX_ENV=dev
+
+COPY --from=node . /builder
+RUN mix local.hex
 RUN mix deps.get && \
   mix compile && \
   mix phx.digest && \
@@ -21,8 +24,8 @@ FROM postgres:13 AS runtime
 
 WORKDIR /app
 
+COPY --from=node . /app
 RUN createdb demo_dev
-
 ENV DATABASE_URL=postgres://postgres@localhost:demo_dev
 
 COPY --from=builder /builder/_build/dev /app
